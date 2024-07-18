@@ -99,34 +99,44 @@ try:
         resources_elements = driver.find_elements(By.CLASS_NAME, "activity.resource.modtype_resource")
         evercam_elements = driver.find_elements(By.CLASS_NAME, "activity.evercam.modtype_evercam")
         iframe_elements = resources_elements + evercam_elements
-        print(f'{course_name}: found {len(iframe_elements)} videos of types RESOURCES or EVERCAM')
+        video_page_links = [x.find_element(By.CLASS_NAME, "aalink").get_attribute("href") for x in iframe_elements]
+        print(f'{course_name}: found {len(video_page_links)} videos of types RESOURCES or EVERCAM')
         
-        for element in iframe_elements[:2]:
-            video_page_link = element.find_element(By.CLASS_NAME, "aalink").get_attribute("href")
+        for video_page_link in video_page_links:
             driver.get(video_page_link)
-            file_name = driver.find_element(By.TAG_NAME, "h2").text
+            time.sleep(3)
             
-            # Switch to iframe
-            iframes = driver.find_elements(By.TAG_NAME, 'iframe')
-            driver.switch_to.frame(iframes[0])
+            try:
+                file_name = driver.find_element(By.TAG_NAME, "h2").text
+                
+                # Switch to iframe
+                iframes = driver.find_elements(By.TAG_NAME, 'iframe')
+                driver.switch_to.frame(iframes[0])
+                
+                # Locate video wrapup by searching video tag
+                video_link = driver.find_element(By.TAG_NAME, "video").get_attribute("src")
+                
+                # Download video with urllib
+                video_file_path = course_folder / f"{sanitize_folder_name(file_name)}.mp4"
+                if not video_file_path.exists():
+                    urllib.request.urlretrieve(video_link, video_file_path)
+                    print(f"Downloaded: {video_file_path}")
+                else:
+                    print(f"Skipping {video_file_path}: Video already exists")
+                
+                # Leave the iframe
+                driver.switch_to.default_content()
+                
+            except Exception as e:
+                print(f"Skipping {video_page_link}: {e}")
             
-            # Locate video wrapup by searching video tag
-            video_link = driver.find_element(By.TAG_NAME, "video").get_attribute("src")
-            
-            # Download video with urllib
-            video_file_path = course_folder / f"{sanitize_folder_name(file_name)}.mp4"
-            urllib.request.urlretrieve(video_link, video_file_path)
-            print(f"Downloaded: {video_file_path}")
-            
-            # Leave the iframe
-            driver.switch_to.default_content()
-
             driver.back()
             time.sleep(3)  # Adjust this if necessary
             
         driver.back()
         time.sleep(3)  # Adjust this if necessary
 
+        # Find EWANTVIDEO
         # Find OTHER DATATYPES
 
 except Exception as e:
