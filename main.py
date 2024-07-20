@@ -1,4 +1,5 @@
 import os
+import sys
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
@@ -19,6 +20,43 @@ def sanitize_folder_name(name):
     sanitized_name = sanitized_name.strip(' .')
     return sanitized_name
 
+def wait_for_loading(driver, target_type, target_name, patience=10):
+    try:
+        # Wait for the specific element that indicates a successful redirection
+        element_present = EC.presence_of_element_located((target_type, target_name))
+        WebDriverWait(driver, patience).until(element_present)
+        return
+    except Exception as e:
+        print("Waiting too long for {driver.current_url} ......\n{e}")
+        driver.quit()
+        sys.exit()
+
+
+def get_video_links_by_type(driver, vtype):
+    vtype_to_class_name = {
+        'resource': "activity.resource.modtype_resource",
+        'evercam': "activity.evercam.modtype_evercam",
+        'ewant': "activity ewantvideo modtype_ewantvideo"
+    }
+    results = []
+    # obtain video page links
+    page_elements = driver.find_elements(By.CLASS_NAME, vtype_to_class_name[vtype])
+    if vtype == 'resource':
+        video_page_links = []
+        for ele in page_elements:
+            icon = ele.find_elements(By.TAG_NAME, "img").get_attribute("src")
+            if 'pdf' not in icon:
+                video_page_links.append(ele.find_element(By.CLASS_NAME, "aalink").get_attribute("href"))
+    else:
+        video_page_links = [x.find_element(By.CLASS_NAME, "aalink").get_attribute("href") for x in page_elements]
+    print(f'Found {len(video_page_links)} videos of type {vtype}')
+    
+    # iterate over video pages and obtain mp4 links
+    for video_page_link in video_page_links:
+        driver.get(video_page_link)
+        
+
+
 # Set up Chrome options
 chrome_options = Options()
 # chrome_options.add_argument("--headless")  # Uncomment if you want to run headless
@@ -30,9 +68,7 @@ driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), opti
 
 # Open the NYCU login page
 driver.get("https://portal.nycu.edu.tw/#/login")
-
-# Allow the page to load
-time.sleep(3)  # Wait for the page to load, adjust this if necessary
+wait_for_loading(driver, By.CSS_SELECTOR, "input[type='submit']")
 
 # Find the username and password fields
 username_field = driver.find_element(By.ID, "account")
@@ -46,6 +82,7 @@ password_field.send_keys("fa1688MI7215ly")
 login_button = driver.find_element(By.CSS_SELECTOR, "input[type='submit']")
 login_button.click()
 
+wait_for_loading(driver, By.XPATH, "//span[@class='no-redirect' and contains(text(), '首頁 Home')]")
 # Allow some time for the login to process
 time.sleep(3)
 
@@ -94,6 +131,7 @@ try:
         
         link.click()
         time.sleep(3)  # Adjust this if necessary
+        print(sanitized_course_name)
         
         # Find RESOURCES and EVERCAM
         resources_elements = driver.find_elements(By.CLASS_NAME, "activity.resource.modtype_resource")
