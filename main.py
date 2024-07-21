@@ -27,7 +27,7 @@ def wait_for_loading(driver, target_type, target_name, patience=10):
         WebDriverWait(driver, patience).until(element_present)
         return
     except Exception as e:
-        print("Waiting too long for {driver.current_url} ......\n{e}")
+        print(f"Waiting too long for {driver.current_url} ......\n{e}")
         driver.quit()
         sys.exit()
 
@@ -39,6 +39,7 @@ def get_video_links_by_type(driver, vtype):
         'ewant': "activity ewantvideo modtype_ewantvideo"
     }
     results = []
+    
     # obtain video page links
     page_elements = driver.find_elements(By.CLASS_NAME, vtype_to_class_name[vtype])
     if vtype == 'resource':
@@ -49,13 +50,44 @@ def get_video_links_by_type(driver, vtype):
                 video_page_links.append(ele.find_element(By.CLASS_NAME, "aalink").get_attribute("href"))
     else:
         video_page_links = [x.find_element(By.CLASS_NAME, "aalink").get_attribute("href") for x in page_elements]
-    print(f'Found {len(video_page_links)} videos of type {vtype}')
     
     # iterate over video pages and obtain mp4 links
     for video_page_link in video_page_links:
         driver.get(video_page_link)
         
+        # wait and get video link
+        if vtype == 'ewant':
+            wait_for_loading(driver, By.TAG_NAME, "video")
+            video_link = driver.find_elements(By.TAG_NAME, 'video').get_attribute("src")
+        elif vtype == 'evercam':
+            wait_for_loading(driver, By.TAG_NAME, "iframe")
+            video_link = driver.find_elements(By.TAG_NAME, 'iframe').get_attribute("src")
+            video_link.replace("index.html?embed=1", "media.mp4")
+        elif vtype == 'resource':
+            wait_for_loading(driver, By.TAG_NAME, "iframe")
+            
+            # Switch to iframe
+            iframes = driver.find_elements(By.TAG_NAME, 'iframe')
+            driver.switch_to.frame(iframes[0])
+            
+            # Locate video wrapup by searching video tag
+            video_link = driver.find_element(By.TAG_NAME, "video").get_attribute("src")
 
+            # Leave the iframe
+            driver.switch_to.default_content()
+        
+        # get video name
+        try:
+            file_name = driver.find_element(By.TAG_NAME, "h2").text
+        except:
+            file_name = vtype + '-' + video_page_link.split("id=")[1]
+        
+        # wrap up
+        results.append((file_name, video_link))
+        driver.back()
+
+    print(f'Found {len(results)} videos of type {vtype}')
+    return results
 
 # Set up Chrome options
 chrome_options = Options()
