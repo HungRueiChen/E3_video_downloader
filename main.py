@@ -36,39 +36,43 @@ def get_video_links_by_type(driver, vtype):
     vtype_to_class_name = {
         'resource': "activity.resource.modtype_resource",
         'evercam': "activity.evercam.modtype_evercam",
-        'ewant': "activity ewantvideo modtype_ewantvideo"
+        'ewant': "activity.ewantvideo.modtype_ewantvideo"
     }
-    results = []
+    file_names = []
+    video_page_links = []
+    video_links = []
     
     # obtain video page links
     page_elements = driver.find_elements(By.CLASS_NAME, vtype_to_class_name[vtype])
-    if vtype == 'resource':
-        video_page_links = []
-        for ele in page_elements:
-            icon = ele.find_elements(By.TAG_NAME, "img").get_attribute("src")
-            if 'pdf' not in icon:
+    for ele in page_elements:
+        if vtype == 'resource':
+            icon = ele.find_element(By.TAG_NAME, "img").get_attribute("src")
+            if 'pdf' not in icon and 'powerpoint' not in icon:
+                file_names.append(sanitize_folder_name(ele.find_element(By.CLASS_NAME, "instancename").text))
                 video_page_links.append(ele.find_element(By.CLASS_NAME, "aalink").get_attribute("href"))
-    else:
-        video_page_links = [x.find_element(By.CLASS_NAME, "aalink").get_attribute("href") for x in page_elements]
+        else:
+            file_names.append(sanitize_folder_name(ele.find_element(By.CLASS_NAME, "instancename").text))
+            video_page_links.append(ele.find_element(By.CLASS_NAME, "aalink").get_attribute("href"))
     
     # iterate over video pages and obtain mp4 links
-    for video_page_link in video_page_links:
+    for video_page_link in video_page_links[:2]:
         driver.get(video_page_link)
         
         # wait and get video link
         if vtype == 'ewant':
             wait_for_loading(driver, By.TAG_NAME, "video")
-            video_link = driver.find_elements(By.TAG_NAME, 'video').get_attribute("src")
+            ele = driver.find_element(By.TAG_NAME, 'video')
+            video_link = ele.find_element(By.TAG_NAME, 'source').get_attribute("src")
         elif vtype == 'evercam':
             wait_for_loading(driver, By.TAG_NAME, "iframe")
-            video_link = driver.find_elements(By.TAG_NAME, 'iframe').get_attribute("src")
+            video_link = driver.find_element(By.TAG_NAME, 'iframe').get_attribute("src")
             video_link.replace("index.html?embed=1", "media.mp4")
         elif vtype == 'resource':
             wait_for_loading(driver, By.TAG_NAME, "iframe")
             
             # Switch to iframe
-            iframes = driver.find_elements(By.TAG_NAME, 'iframe')
-            driver.switch_to.frame(iframes[0])
+            iframe = driver.find_element(By.TAG_NAME, 'iframe')
+            driver.switch_to.frame(iframe)
             
             # Locate video wrapup by searching video tag
             video_link = driver.find_element(By.TAG_NAME, "video").get_attribute("src")
@@ -76,17 +80,14 @@ def get_video_links_by_type(driver, vtype):
             # Leave the iframe
             driver.switch_to.default_content()
         
-        # get video name
-        try:
-            file_name = driver.find_element(By.TAG_NAME, "h2").text
-        except:
-            file_name = vtype + '-' + video_page_link.split("id=")[1]
-        
         # wrap up
-        results.append((file_name, video_link))
+        video_links.append(video_link)
         driver.back()
+        wait_for_loading(driver, By.TAG_NAME, "footer")
 
+    results = list(zip(file_names, video_links))
     print(f'Found {len(results)} videos of type {vtype}')
+    print(results)
     return results
 
 # Set up Chrome options
@@ -115,13 +116,11 @@ login_button = driver.find_element(By.CSS_SELECTOR, "input[type='submit']")
 login_button.click()
 wait_for_loading(driver, By.XPATH, "//span[@class='no-redirect' and contains(text(), '首頁 Home')]")
 
-
 # Open the new E3 course history
 driver.get("https://portal.nycu.edu.tw/#/redirect/newe3")
 wait_for_loading(driver, By.ID, "user-action-menu")
 driver.get("https://e3.nycu.edu.tw/local/courseextension/course_history.php")
-wait_for_loading(driver, By.XPATH, "//div[@class='layer2_left_caption' and contains(text(), '歷年課程')]")
-
+wait_for_loading(driver, By.ID, "page-footer")
 
 # Loop over courses and download videos
 try:
@@ -136,58 +135,36 @@ try:
     base_dir.mkdir(parents=True, exist_ok=True)
     
     # Loop over all the course links and print their text
-    for link in course_links[12:13]:
+    for link in course_links[19:20]:
         course_name = link.text
         sanitized_course_name = sanitize_folder_name(course_name)
         course_folder = base_dir / sanitized_course_name
         course_folder.mkdir(parents=True, exist_ok=True)
         
+        # Head to specific course
         link.click()
-        time.sleep(3)  # Adjust this if necessary
+        wait_for_loading(driver, By.TAG_NAME, "footer")
         print(sanitized_course_name)
+        videos = []
         
-        # Find RESOURCES and EVERCAM
-        resources_elements = driver.find_elements(By.CLASS_NAME, "activity.resource.modtype_resource")
-        evercam_elements = driver.find_elements(By.CLASS_NAME, "activity.evercam.modtype_evercam")
-        iframe_elements = resources_elements + evercam_elements
-        video_page_links = [x.find_element(By.CLASS_NAME, "aalink").get_attribute("href") for x in iframe_elements]
-        print(f'{course_name}: found {len(video_page_links)} videos of types RESOURCES or EVERCAM')
+        # Obatin video names and links of different types
+        videos += get_video_links_by_type(driver, "resource")
+        videos += get_video_links_by_type(driver, "evercam")
+        videos += get_video_links_by_type(driver, "ewant")
         
-        for video_page_link in video_page_links:
-            driver.get(video_page_link)
-            time.sleep(3)
+        # Download video with urllib
+        for video in videos:
+            video_file_path = course_folder / f"{video[0]}.mp4"
+            if video_file_path.exists():
+                print(f"Skipping {video_file_path}: Video already exists")
+            else:
+                urllib.request.urlretrieve(video[1], video_file_path)
+                print(f"Downloaded: {video[1]}")
             
-            try:
-                file_name = driver.find_element(By.TAG_NAME, "h2").text
-                
-                # Switch to iframe
-                iframes = driver.find_elements(By.TAG_NAME, 'iframe')
-                driver.switch_to.frame(iframes[0])
-                
-                # Locate video wrapup by searching video tag
-                video_link = driver.find_element(By.TAG_NAME, "video").get_attribute("src")
-                
-                # Download video with urllib
-                video_file_path = course_folder / f"{sanitize_folder_name(file_name)}.mp4"
-                if not video_file_path.exists():
-                    urllib.request.urlretrieve(video_link, video_file_path)
-                    print(f"Downloaded: {video_file_path}")
-                else:
-                    print(f"Skipping {video_file_path}: Video already exists")
-                
-                # Leave the iframe
-                driver.switch_to.default_content()
-                
-            except Exception as e:
-                print(f"Skipping {video_page_link}: {e}")
-            
-            driver.back()
-            time.sleep(3)  # Adjust this if necessary
-            
+        # Back to course history
         driver.back()
-        time.sleep(3)  # Adjust this if necessary
+        wait_for_loading(driver, By.ID, "page-footer")
 
-        # Find EWANTVIDEO
         # Find OTHER DATATYPES
 
 except Exception as e:
