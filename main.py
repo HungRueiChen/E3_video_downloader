@@ -81,34 +81,15 @@ password_field.send_keys("fa1688MI7215ly")
 # Find and click the login button
 login_button = driver.find_element(By.CSS_SELECTOR, "input[type='submit']")
 login_button.click()
-
 wait_for_loading(driver, By.XPATH, "//span[@class='no-redirect' and contains(text(), '首頁 Home')]")
-# Allow some time for the login to process
-time.sleep(3)
 
-# Verify successful login
-try:
-    # Wait for the specific element that indicates a successful login
-    element_present = EC.presence_of_element_located((By.XPATH, "//span[@class='no-redirect' and contains(text(), '首頁 Home')]"))
-    WebDriverWait(driver, 10).until(element_present)
-    print("Login successful!")
-except:
-    print("Login failed!")
 
 # Open the new E3 course history
 driver.get("https://portal.nycu.edu.tw/#/redirect/newe3")
-time.sleep(3)
+wait_for_loading(driver, By.ID, "user-action-menu")
 driver.get("https://e3.nycu.edu.tw/local/courseextension/course_history.php")
-time.sleep(3)
+wait_for_loading(driver, By.XPATH, "//div[@class='layer2_left_caption' and contains(text(), '歷年課程')]")
 
-# Verify redirection
-try:
-    # Wait for the specific element that indicates successful redirection
-    element_present = EC.presence_of_element_located((By.XPATH, "//div[@class='layer2_left_caption' and contains(text(), '歷年課程')]"))
-    WebDriverWait(driver, 20).until(element_present)
-    print("Redirection successful!")
-except:
-    print("Redirection failed!")
 
 # Loop over courses and download videos
 try:
@@ -123,7 +104,7 @@ try:
     base_dir.mkdir(parents=True, exist_ok=True)
     
     # Loop over all the course links and print their text
-    for link in course_links[10:15]:
+    for link in course_links[12:13]:
         course_name = link.text
         sanitized_course_name = sanitize_folder_name(course_name)
         course_folder = base_dir / sanitized_course_name
