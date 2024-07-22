@@ -57,7 +57,7 @@ def get_video_links_by_type(driver, vtype):
             video_page_links.append(ele.find_element(By.CLASS_NAME, "aalink").get_attribute("href"))
     
     # iterate over video pages and obtain mp4 links
-    for video_page_link in video_page_links:
+    for idx, video_page_link in enumerate(video_page_links):
         driver.get(video_page_link)
         
         # wait and get video link
@@ -86,7 +86,9 @@ def get_video_links_by_type(driver, vtype):
             video_links.append(video_link)
         
         except Exception as e:
-            print(f"Skipping {video_page_link}: Unable to locate video tag\n{e}")
+            # Delete corresponding file_name
+            skipped = file_names.pop(idx - len(video_page_links))
+            print(f"Skipping {skipped}: Unable to locate video tag\n{e}")
         
         # Back to course page
         driver.back()
@@ -145,7 +147,7 @@ try:
     base_dir.mkdir(parents=True, exist_ok=True)
     
     # Loop over all the course links and print their text
-    for link in course_links:
+    for link in course_links[20:]:
         course_name = link.text
         sanitized_course_name = sanitize_folder_name(course_name)
         course_folder = base_dir / sanitized_course_name
