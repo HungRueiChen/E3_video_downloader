@@ -61,29 +61,34 @@ def get_video_links_by_type(driver, vtype):
         driver.get(video_page_link)
         
         # wait and get video link
-        if vtype == 'ewant':
-            wait_for_loading(driver, By.TAG_NAME, "video")
-            ele = driver.find_element(By.TAG_NAME, 'video')
-            video_link = ele.find_element(By.TAG_NAME, 'source').get_attribute("src")
-        elif vtype == 'resource':
-            wait_for_loading(driver, By.TAG_NAME, "iframe")
-            video_link = driver.find_element(By.TAG_NAME, 'iframe').get_attribute("src")
-            video_link = video_link.replace("index.html?embed=1", "media.mp4")
-        elif vtype == 'evercam':
-            wait_for_loading(driver, By.TAG_NAME, "iframe")
-            
-            # Switch to iframe
-            iframe = driver.find_element(By.TAG_NAME, 'iframe')
-            driver.switch_to.frame(iframe)
-            
-            # Locate video wrapup by searching video tag
-            video_link = driver.find_element(By.TAG_NAME, "video").get_attribute("src")
+        try:
+            if vtype == 'ewant':
+                wait_for_loading(driver, By.TAG_NAME, "video")
+                ele = driver.find_element(By.TAG_NAME, 'video')
+                video_link = ele.find_element(By.TAG_NAME, 'source').get_attribute("src")
+            elif vtype == 'resource':
+                wait_for_loading(driver, By.TAG_NAME, "iframe")
+                video_link = driver.find_element(By.TAG_NAME, 'iframe').get_attribute("src")
+                video_link = video_link.replace("index.html?embed=1", "media.mp4")
+            elif vtype == 'evercam':
+                wait_for_loading(driver, By.TAG_NAME, "iframe")
+                
+                # Switch to iframe
+                iframe = driver.find_element(By.TAG_NAME, 'iframe')
+                driver.switch_to.frame(iframe)
+                
+                # Locate video wrapup by searching video tag
+                video_link = driver.find_element(By.TAG_NAME, "video").get_attribute("src")
 
-            # Leave the iframe
-            driver.switch_to.default_content()
+                # Leave the iframe
+                driver.switch_to.default_content()
+            
+            video_links.append(video_link)
         
-        # wrap up
-        video_links.append(video_link)
+        except Exception as e:
+            print(f"Skipping {video_page_link}: Unable to locate video tag\n{e}")
+        
+        # Back to course page
         driver.back()
         wait_for_loading(driver, By.TAG_NAME, "footer")
 
