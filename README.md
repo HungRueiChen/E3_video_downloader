@@ -39,7 +39,7 @@ Ensure you have the following installed on your system:
    git clone https://github.com/your-repo/nycu-e3-video-downloader.git
    cd nycu-e3-video-downloader
    ```
-2. **Set destination folder**:
+2. **Set the Destination**:
    - By default, the program creates a folder "videos" under the current directory and creates a subdirectorie under "videos" for each course.
    - To change the destination folder, modify Path object on line 137.
      ```python
