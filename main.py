@@ -89,6 +89,10 @@ def get_video_links_by_type(driver, vtype):
     print(f'Found {len(results)} videos of type {vtype}')
     return results
 
+# Obtain username and password
+username = input("Enter username (Student ID):")
+password = input("Enter password:")
+
 # Set up Chrome options
 chrome_options = Options()
 # chrome_options.add_argument("--headless")  # Uncomment if you want to run headless
@@ -107,8 +111,8 @@ username_field = driver.find_element(By.ID, "account")
 password_field = driver.find_element(By.ID, "password")
 
 # Enter the username and password
-username_field.send_keys("10701129")
-password_field.send_keys("fa1688MI7215ly")
+username_field.send_keys(username)
+password_field.send_keys(password)
 
 # Find and click the login button
 login_button = driver.find_element(By.CSS_SELECTOR, "input[type='submit']")
