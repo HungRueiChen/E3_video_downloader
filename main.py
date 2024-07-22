@@ -63,11 +63,11 @@ def get_video_links_by_type(driver, vtype):
             wait_for_loading(driver, By.TAG_NAME, "video")
             ele = driver.find_element(By.TAG_NAME, 'video')
             video_link = ele.find_element(By.TAG_NAME, 'source').get_attribute("src")
-        elif vtype == 'evercam':
+        elif vtype == 'resource':
             wait_for_loading(driver, By.TAG_NAME, "iframe")
             video_link = driver.find_element(By.TAG_NAME, 'iframe').get_attribute("src")
-            video_link.replace("index.html?embed=1", "media.mp4")
-        elif vtype == 'resource':
+            video_link = video_link.replace("index.html?embed=1", "media.mp4")
+        elif vtype == 'evercam':
             wait_for_loading(driver, By.TAG_NAME, "iframe")
             
             # Switch to iframe
