@@ -38,6 +38,7 @@ def get_video_links_by_type(driver, vtype):
         'evercam': "activity.evercam.modtype_evercam",
         'ewant': "activity.ewantvideo.modtype_ewantvideo"
     }
+    resources_to_include = ['html', 'mpeg']
     file_names = []
     video_page_links = []
     video_links = []
@@ -47,9 +48,10 @@ def get_video_links_by_type(driver, vtype):
     for ele in page_elements:
         if vtype == 'resource':
             icon = ele.find_element(By.TAG_NAME, "img").get_attribute("src")
-            if 'pdf' not in icon and 'powerpoint' not in icon and 'archive' not in icon:
-                file_names.append(sanitize_folder_name(ele.find_element(By.CLASS_NAME, "instancename").text))
-                video_page_links.append(ele.find_element(By.CLASS_NAME, "aalink").get_attribute("href"))
+            for wanted in resources_to_include:
+                if wanted in icon:
+                    file_names.append(sanitize_folder_name(ele.find_element(By.CLASS_NAME, "instancename").text))
+                    video_page_links.append(ele.find_element(By.CLASS_NAME, "aalink").get_attribute("href"))
         else:
             file_names.append(sanitize_folder_name(ele.find_element(By.CLASS_NAME, "instancename").text))
             video_page_links.append(ele.find_element(By.CLASS_NAME, "aalink").get_attribute("href"))
