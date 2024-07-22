@@ -8,8 +8,8 @@ from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-import time
 import urllib
+import requests
 from pathlib import Path
 import re
 
@@ -55,7 +55,7 @@ def get_video_links_by_type(driver, vtype):
             video_page_links.append(ele.find_element(By.CLASS_NAME, "aalink").get_attribute("href"))
     
     # iterate over video pages and obtain mp4 links
-    for video_page_link in video_page_links[:2]:
+    for video_page_link in video_page_links:
         driver.get(video_page_link)
         
         # wait and get video link
@@ -87,7 +87,6 @@ def get_video_links_by_type(driver, vtype):
 
     results = list(zip(file_names, video_links))
     print(f'Found {len(results)} videos of type {vtype}')
-    print(results)
     return results
 
 # Set up Chrome options
@@ -135,7 +134,7 @@ try:
     base_dir.mkdir(parents=True, exist_ok=True)
     
     # Loop over all the course links and print their text
-    for link in course_links[19:20]:
+    for link in course_links:
         course_name = link.text
         sanitized_course_name = sanitize_folder_name(course_name)
         course_folder = base_dir / sanitized_course_name
@@ -158,9 +157,18 @@ try:
             if video_file_path.exists():
                 print(f"Skipping {video_file_path}: Video already exists")
             else:
-                urllib.request.urlretrieve(video[1], video_file_path)
-                print(f"Downloaded: {video[1]}")
-            
+                # set requests' cookies
+                cookies = driver.get_cookies()
+                s = requests.Session()
+                for cookie in cookies:
+                    s.cookies.set(cookie['name'], cookie['value'])
+                
+                # download by read/write
+                response = s.get(video[1], stream=True)
+                print(f"Status code = {response.status_code}, Downloading: {video[1]}")
+                with open(video_file_path, 'wb') as f:
+                    f.write(response.content)
+                            
         # Back to course history
         driver.back()
         wait_for_loading(driver, By.ID, "page-footer")
