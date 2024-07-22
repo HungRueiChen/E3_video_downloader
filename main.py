@@ -47,7 +47,7 @@ def get_video_links_by_type(driver, vtype):
     for ele in page_elements:
         if vtype == 'resource':
             icon = ele.find_element(By.TAG_NAME, "img").get_attribute("src")
-            if 'pdf' not in icon and 'powerpoint' not in icon:
+            if 'pdf' not in icon and 'powerpoint' not in icon and 'archive' not in icon:
                 file_names.append(sanitize_folder_name(ele.find_element(By.CLASS_NAME, "instancename").text))
                 video_page_links.append(ele.find_element(By.CLASS_NAME, "aalink").get_attribute("href"))
         else:
@@ -134,7 +134,7 @@ try:
     course_links = parent_element.find_elements(By.CLASS_NAME, "course-link")
 
     # Create a base directory for the videos
-    base_dir = Path("./videos")
+    base_dir = Path("//AndreNAS1/home/Raymond/E3_videos")
     base_dir.mkdir(parents=True, exist_ok=True)
     
     # Loop over all the course links and print their text
