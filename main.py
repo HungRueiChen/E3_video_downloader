@@ -20,6 +20,20 @@ def sanitize_folder_name(name):
     sanitized_name = sanitized_name.strip(' .')
     return sanitized_name
 
+def rename_duplicates(file_names):
+    name_count = {}
+    renamed_list = []
+
+    for name in file_names:
+        if name in name_count:
+            name_count[name] += 1
+            renamed_list.append(f"{name}_{name_count[name]}")
+        else:
+            name_count[name] = 0
+            renamed_list.append(name)
+
+    return renamed_list
+
 def wait_for_loading(driver, target_type, target_name, patience=10, autoquit = True):
     try:
         # Wait for the specific element that indicates a successful redirection
@@ -56,11 +70,14 @@ def get_video_links_by_type(driver, vtype):
             file_names.append(sanitize_folder_name(ele.find_element(By.CLASS_NAME, "instancename").text))
             video_page_links.append(ele.find_element(By.CLASS_NAME, "aalink").get_attribute("href"))
     
-    # iterate over video pages and obtain mp4 links
+    # Check and rename duplicated file_names
+    file_names = rename_duplicates(file_names)
+
+    # Iterate over video pages and obtain mp4 links
     for idx, video_page_link in enumerate(video_page_links):
         driver.get(video_page_link)
         
-        # wait and get video link
+        # Wait and get video link
         try:
             if vtype == 'mpeg' or vtype == 'ewant':
                 wait_for_loading(driver, By.TAG_NAME, "video", autoquit = False)
@@ -147,7 +164,7 @@ try:
     base_dir.mkdir(parents=True, exist_ok=True)
     
     # Loop over all the course links and print their text
-    for link in course_links[45:]:
+    for link in course_links[81:]:
         course_name = link.text
         sanitized_course_name = sanitize_folder_name(course_name)
         course_folder = base_dir / sanitized_course_name
