@@ -153,18 +153,18 @@ wait_for_loading(driver, By.ID, "page-footer")
 
 # Loop over courses and download videos
 try:
-    # Find the parent element that contains the course links
-    parent_element = driver.find_element(By.CLASS_NAME, "layer2_left_caption")
-    
-    # Find all course links within the parent element
-    course_links = parent_element.find_elements(By.CLASS_NAME, "course-link")
-
     # Create a base directory for the videos
     base_dir = Path("//AndreNAS1/home/Raymond/E3_videos")
     base_dir.mkdir(parents=True, exist_ok=True)
     
+    # Find all course links within course history
+    course_links = driver.find_elements(By.CLASS_NAME, "course-link")
+    course_counts = len(course_links)
+
     # Loop over all the course links and print their text
-    for link in course_links[81:]:
+    for cnt in range(25, 56):
+        # Redefine link elements to prevent stale element exception
+        link = driver.find_elements(By.CLASS_NAME, "course-link")[cnt]
         course_name = link.text
         sanitized_course_name = sanitize_folder_name(course_name)
         course_folder = base_dir / sanitized_course_name
