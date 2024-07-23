@@ -145,7 +145,7 @@ wait_for_loading(driver, By.ID, "page-footer")
 # Loop over courses and download videos
 try:
     # Create a base directory for the videos
-    base_dir = Path("//AndreNAS1/home/Raymond/E3_videos")
+    base_dir = Path("./videos")
     base_dir.mkdir(parents=True, exist_ok=True)
     
     # Find all course links within course history
