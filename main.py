@@ -49,7 +49,6 @@ def wait_for_loading(driver, target_type, target_name, patience=10, autoquit = T
             driver.quit()
             sys.exit()
 
-
 def get_video_links_by_type(driver, vtype):
     vtype_to_class_name = {
         'html': "activity.resource.modtype_resource",
@@ -119,28 +118,20 @@ def get_video_links_by_type(driver, vtype):
 username = input("Enter username (Student ID):")
 password = input("Enter password:")
 
-# Set up Chrome options
+# Set up Chrome driver
 chrome_options = Options()
 # chrome_options.add_argument("--headless")  # Uncomment if you want to run headless
 chrome_options.add_argument("--no-sandbox")
 chrome_options.add_argument("--disable-dev-shm-usage")
-
-# Initialize the Chrome driver
 driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
 
-# Open the NYCU login page
+# Log in the NYCU portal
 driver.get("https://portal.nycu.edu.tw/#/login")
 wait_for_loading(driver, By.CSS_SELECTOR, "input[type='submit']")
-
-# Find the username and password fields
 username_field = driver.find_element(By.ID, "account")
 password_field = driver.find_element(By.ID, "password")
-
-# Enter the username and password
 username_field.send_keys(username)
 password_field.send_keys(password)
-
-# Find and click the login button
 login_button = driver.find_element(By.CSS_SELECTOR, "input[type='submit']")
 login_button.click()
 wait_for_loading(driver, By.XPATH, "//span[@class='no-redirect' and contains(text(), '首頁 Home')]")
@@ -161,8 +152,8 @@ try:
     course_links = driver.find_elements(By.CLASS_NAME, "course-link")
     course_counts = len(course_links)
 
-    # Loop over all the course links and print their text
-    for cnt in range(31, course_counts - 1):
+    # Loop over all the course links, excluding "[學生]1112.醫五核心實習訓練與課程相關"
+    for cnt in range(course_counts - 1):
         # Redefine link elements to prevent stale element exception
         link = driver.find_elements(By.CLASS_NAME, "course-link")[cnt]
         course_name = link.text
