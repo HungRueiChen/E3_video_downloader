@@ -20,7 +20,7 @@ def sanitize_folder_name(name):
     sanitized_name = sanitized_name.strip(' .')
     return sanitized_name
 
-def wait_for_loading(driver, target_type, target_name, patience=10):
+def wait_for_loading(driver, target_type, target_name, patience=10, autoquit = True):
     try:
         # Wait for the specific element that indicates a successful redirection
         element_present = EC.presence_of_element_located((target_type, target_name))
@@ -28,17 +28,18 @@ def wait_for_loading(driver, target_type, target_name, patience=10):
         return
     except Exception as e:
         print(f"Waiting too long for {driver.current_url} ......\n{e}")
-        driver.quit()
-        sys.exit()
+        if autoquit:
+            driver.quit()
+            sys.exit()
 
 
 def get_video_links_by_type(driver, vtype):
     vtype_to_class_name = {
-        'resource': "activity.resource.modtype_resource",
+        'html': "activity.resource.modtype_resource",
+        'mpeg': "activity.resource.modtype_resource",
         'evercam': "activity.evercam.modtype_evercam",
         'ewant': "activity.ewantvideo.modtype_ewantvideo"
     }
-    resources_to_include = ['html', 'mpeg']
     file_names = []
     video_page_links = []
     video_links = []
@@ -46,12 +47,11 @@ def get_video_links_by_type(driver, vtype):
     # obtain video page links
     page_elements = driver.find_elements(By.CLASS_NAME, vtype_to_class_name[vtype])
     for ele in page_elements:
-        if vtype == 'resource':
+        if vtype == 'html' or vtype == 'mpeg':
             icon = ele.find_element(By.TAG_NAME, "img").get_attribute("src")
-            for wanted in resources_to_include:
-                if wanted in icon:
-                    file_names.append(sanitize_folder_name(ele.find_element(By.CLASS_NAME, "instancename").text))
-                    video_page_links.append(ele.find_element(By.CLASS_NAME, "aalink").get_attribute("href"))
+            if vtype in icon:
+                file_names.append(sanitize_folder_name(ele.find_element(By.CLASS_NAME, "instancename").text))
+                video_page_links.append(ele.find_element(By.CLASS_NAME, "aalink").get_attribute("href"))
         else:
             file_names.append(sanitize_folder_name(ele.find_element(By.CLASS_NAME, "instancename").text))
             video_page_links.append(ele.find_element(By.CLASS_NAME, "aalink").get_attribute("href"))
@@ -62,16 +62,16 @@ def get_video_links_by_type(driver, vtype):
         
         # wait and get video link
         try:
-            if vtype == 'ewant':
-                wait_for_loading(driver, By.TAG_NAME, "video")
+            if vtype == 'mpeg' or vtype == 'ewant':
+                wait_for_loading(driver, By.TAG_NAME, "video", autoquit = False)
                 ele = driver.find_element(By.TAG_NAME, 'video')
                 video_link = ele.find_element(By.TAG_NAME, 'source').get_attribute("src")
-            elif vtype == 'resource':
-                wait_for_loading(driver, By.TAG_NAME, "iframe")
+            elif vtype == 'html':
+                wait_for_loading(driver, By.TAG_NAME, "iframe", autoquit = False)
                 video_link = driver.find_element(By.TAG_NAME, 'iframe').get_attribute("src")
                 video_link = video_link.replace("index.html?embed=1", "media.mp4")
             elif vtype == 'evercam':
-                wait_for_loading(driver, By.TAG_NAME, "iframe")
+                wait_for_loading(driver, By.TAG_NAME, "iframe", autoquit = False)
                 
                 # Switch to iframe
                 iframe = driver.find_element(By.TAG_NAME, 'iframe')
@@ -147,7 +147,7 @@ try:
     base_dir.mkdir(parents=True, exist_ok=True)
     
     # Loop over all the course links and print their text
-    for link in course_links[20:]:
+    for link in course_links[45:]:
         course_name = link.text
         sanitized_course_name = sanitize_folder_name(course_name)
         course_folder = base_dir / sanitized_course_name
@@ -160,7 +160,8 @@ try:
         videos = []
         
         # Obatin video names and links of different types
-        videos += get_video_links_by_type(driver, "resource")
+        videos += get_video_links_by_type(driver, "html")
+        videos += get_video_links_by_type(driver, "mpeg")
         videos += get_video_links_by_type(driver, "evercam")
         videos += get_video_links_by_type(driver, "ewant")
         
@@ -185,8 +186,6 @@ try:
         # Back to course history
         driver.back()
         wait_for_loading(driver, By.ID, "page-footer")
-
-        # Find OTHER DATATYPES
 
 except Exception as e:
     print("An error occurred:", e)
