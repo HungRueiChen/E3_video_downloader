@@ -20,7 +20,8 @@ def sanitize_folder_name(name):
     sanitized_name = sanitized_name.strip(' .')
     return sanitized_name
 
-def rename_duplicates(file_names):
+def rename_duplicates(videos):
+    file_names, video_links = zip(*videos)
     name_count = {}
     renamed_list = []
 
@@ -28,11 +29,13 @@ def rename_duplicates(file_names):
         if name in name_count:
             name_count[name] += 1
             renamed_list.append(f"{name}_{name_count[name]}")
+            print(f"Duplicated file name, renaming {name} to {name}_{name_count[name]}")
         else:
             name_count[name] = 0
             renamed_list.append(name)
 
-    return renamed_list
+    renamed_videos = list(zip(renamed_list, video_links))
+    return renamed_videos
 
 def wait_for_loading(driver, target_type, target_name, patience=10, autoquit = True):
     try:
@@ -69,9 +72,6 @@ def get_video_links_by_type(driver, vtype):
         else:
             file_names.append(sanitize_folder_name(ele.find_element(By.CLASS_NAME, "instancename").text))
             video_page_links.append(ele.find_element(By.CLASS_NAME, "aalink").get_attribute("href"))
-    
-    # Check and rename duplicated file_names
-    file_names = rename_duplicates(file_names)
 
     # Iterate over video pages and obtain mp4 links
     for idx, video_page_link in enumerate(video_page_links):
@@ -162,7 +162,7 @@ try:
     course_counts = len(course_links)
 
     # Loop over all the course links and print their text
-    for cnt in range(25, 56):
+    for cnt in range(31, course_counts - 1):
         # Redefine link elements to prevent stale element exception
         link = driver.find_elements(By.CLASS_NAME, "course-link")[cnt]
         course_name = link.text
@@ -181,6 +181,10 @@ try:
         videos += get_video_links_by_type(driver, "mpeg")
         videos += get_video_links_by_type(driver, "evercam")
         videos += get_video_links_by_type(driver, "ewant")
+
+        # Check and rename duplicated filenames
+        if videos:
+            videos = rename_duplicates(videos)
         
         # Download video with urllib
         for video in videos:
